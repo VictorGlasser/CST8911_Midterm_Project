@@ -1,4 +1,5 @@
 import pymongo
+import json
 
 # start the mongo client
 myclient = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -9,41 +10,31 @@ mydb = myclient["Crocs"]
 # add a new collection called crocodiles
 crocodiles = mydb["crocodiles"]
 
-# create a croco
-croco1 = {
-            "Observation ID":1,
-            "Common Name":"Morelet's Crocodile",
-            "Scientific Name":"Crocodylus moreletii",
-            "Family":"Crocodylidae",
-            "Genus":"Crocodylus",
-            "Observed Length (m)":1.9,
-            "Observed Weight (kg)":62.0,
-            "Age Class":"Adult",
-            "Sex":"Male",
-            "Date of Observation":"31-03-2018",
-            "Country\/Region":"Belize",
-            "Habitat Type":"Swamps",
-            "Conservation Status":"Least Concern",
-            "Observer Name":"Allison Hill",
-            "Notes":"Cause bill scientist nation opportunity."
-        }
+# create an empty query, it will return every item
+getAllQuery = {}
 
-# add the croco to the collection
-x = crocodiles.insert_one(croco1)
+# clear the collection, we do this so that we can re-run the script without duping the data
+crocodiles.delete_many(getAllQuery)
 
-# list the DBs
-print("List of databases")
-print(myclient.list_database_names())
+# populate the DB with sample data
+print("Database created!")
+print("Populating database with JSON file data.....")
+try:
+    print("Attempting to read 'crocodile_dataset.json'.....")
+    # try to open the json file with the list of sample data
+    with open('crocodile_dataset.json', 'r') as f:
+        data = json.load(f)
+        print("Reading complete!")
 
-# list the collections
-print("List of collections in the DB")
-print(mydb.list_collection_names())
+    print("Loading JSON data into the database.....")
+    crocodiles.insert_many(data)
 
-#address greater than S:
-myquery = {}
+    print("Loading of JSON data is complete!")
+    print("Welcome to the special crocodile database!")
+# if the json file is missing
+except FileNotFoundError:
+    print("Error: 'crocodile_dataset.json' not found.")
 
-croclist = crocodiles.find(myquery)
-
-# list crocs
-for x in croclist:
-    print(x)
+# if the json file is in a bad format
+except json.JSONDecodeError:
+    print("Error: Could not decode JSON from 'crocodile_dataset.json'. Check file format.")
