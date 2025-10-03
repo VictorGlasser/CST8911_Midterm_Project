@@ -2,8 +2,8 @@ const { app } = require('@azure/functions');
 const { MongoClient } = require("mongodb");
 
 const config = {
-  url: "mongodb://localhost:27017/Crocs",
-  dbName: "Crocs"
+    url: "mongodb://localhost:27017/Crocs",
+    dbName: "Crocs"
 };
 
 app.http('GetCrocodile', {
@@ -15,8 +15,8 @@ app.http('GetCrocodile', {
 
         if (!id) {
             context.res = {
-            status: 400,
-            body: 'Please enter the correct Observation Id number!'
+                status: 400,
+                body: 'Please enter the correct Observation Id number!'
             }
 
             return
@@ -35,13 +35,13 @@ app.http('GetCrocodile', {
 
             connection.close()
             context.res = {
-            status: 200,
-            body
+                status: 200,
+                body
             }
         } catch (error) {
             context.res = {
-            status: 500,
-            body: `Error: ${error.message}`
+                status: 500,
+                body: `Error: ${error.message}`
             }
         }
     }

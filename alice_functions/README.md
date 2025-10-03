@@ -17,7 +17,10 @@ Azure Functions making CRUD operations via HTTP triggers. Written in Javascript.
 3. Install dependencies:
    ```bash
    npm install
-4. Run the CRUD functions for API testing (currently testing Create, Read, and ReadAll)
+4. If Linux, I needed this workaround to actually unzip the func commands:
+    ```bash
+    sudo npm install -g azure-functions-core-tools --unsafe-perm true
+5. Run the CRUD functions for API testing (currently testing Create, Read, and ReadAll)
     ```bash
    func host start
 ## Creating Functions Locally
