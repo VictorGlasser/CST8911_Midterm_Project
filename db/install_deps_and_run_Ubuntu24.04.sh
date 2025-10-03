@@ -17,3 +17,16 @@ sudo apt-get install -y mongodb-org
 
 #run mongo DB
 sudo systemctl start mongod
+
+# install python
+sudo apt-get update
+sudo apt-get install python3.6
+
+# install python package installer
+sudo apt install python3-pip
+
+# install app deps
+sudo apt install python3-pip
+
+# run app
+python3 app.py
