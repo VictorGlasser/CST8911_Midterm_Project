@@ -29,7 +29,7 @@ app.http('GetAllCrocodiles', {
     // verify validity of token
     try {
       jwt.verify(token, config.jwtSecret);
-    } catch (err) {
+    } catch {
       return {
         status: 401,
         jsonBody: { error: 'Invalid or expired token' }
@@ -50,7 +50,9 @@ app.http('GetAllCrocodiles', {
     } catch (err) {
       return {
         status: 500,
-        jsonBody: { error: 'Database connection failed' }
+        jsonBody: {
+          error: `Failed database connection, ${err}`
+        }
       };
     } finally {
       await client.close();
