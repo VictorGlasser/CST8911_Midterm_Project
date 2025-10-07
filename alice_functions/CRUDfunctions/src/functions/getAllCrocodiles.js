@@ -10,7 +10,7 @@ const config = {
 };
 
 
-app.http('GetAllCrocodiles', {
+app.http('getAllCrocodiles', {
   methods: ['GET'],
   authLevel: 'anonymous',
   route: "crocodiles",

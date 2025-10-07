@@ -1,5 +1,5 @@
 const { app } = require('@azure/functions');
-const { MongoClient } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
 const jwt = require('jsonwebtoken');
 
 const config = {
@@ -8,7 +8,7 @@ const config = {
     jwtSecret: "example_jwt_secret" // must match JWT_SECRET in OAuth server config
 };
 
-app.http('GetCrocodile', {
+app.http('getCrocodile', {
     methods: ['GET'],
     authLevel: 'anonymous',
     route: "crocodiles/{id}",

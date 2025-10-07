@@ -8,7 +8,7 @@ const config = {
     jwtSecret: "example_jwt_secret" // must match JWT_SECRET in OAuth server config
 };
 
-app.http('CreateCrocodile', {
+app.http('createCrocodile', {
     methods: ['POST'],
     authLevel: 'anonymous',
     route: "crocodiles",
