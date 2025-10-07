@@ -1,5 +1,5 @@
 const { app } = require('@azure/functions');
-const { MongoClient, ObjectId } = require("mongodb");
+const { MongoClient } = require("mongodb");
 const jwt = require('jsonwebtoken');
 
 const config = {
