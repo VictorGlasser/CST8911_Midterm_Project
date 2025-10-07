@@ -8,6 +8,24 @@ const config = {
     jwtSecret: "example_jwt_secret" // must match JWT_SECRET in OAuth server config
 };
 
+// Default values for all fields
+const defaultCrocodile = {
+    "Common Name": "Unknown Crocodile",
+    "Scientific Name": "Unknown",
+    "Family": "Unknown",
+    "Genus": "Unknown",
+    "Observed Length (m)": null,
+    "Observed Weight (kg)": null,
+    "Age Class": "Unknown",
+    "Sex": "Unknown",
+    "Date of Observation": new Date().toISOString().split('T')[0],
+    "Country/Region": "Unknown",
+    "Habitat Type": "Unknown",
+    "Conservation Status": "Unknown",
+    "Observer Name": "Anonymous",
+    "Notes": ""
+};
+
 app.http('createCrocodile', {
     methods: ['POST'],
     authLevel: 'anonymous',
@@ -51,12 +69,15 @@ app.http('createCrocodile', {
             }
         }
 
+        // Merge provided fields with defaults
+        crocodile = { ...defaultCrocodile, ...crocodile };
+
+
         let client;
         try {
             client = await MongoClient.connect(config.url);
             const db = client.db(config.dbName);
             const crocodiles = db.collection('crocodiles')
-
 
             // Find the highest _id
             const lastEntry = await crocodiles.find().sort({ _id: -1 }).limit(1).toArray();
