@@ -49,11 +49,20 @@ app.http('getCrocodile', {
             client = await MongoClient.connect(config.url);
             const db = client.db(config.dbName);
             const data = await db.collection('crocodiles').findOne({ _id: id });
-
-            return {
-                status: 200,
-                jsonBody: data
-            };
+            if (!data) {
+                return {
+                    status: 404,
+                    jsonBody: {
+                        error: `Crocodile matching ${id} does not exist!`
+                    }
+                };
+            }
+            else {
+                return {
+                    status: 200,
+                    jsonBody: data
+                };
+            }
         } catch (err) {
             return {
                 status: 500,
