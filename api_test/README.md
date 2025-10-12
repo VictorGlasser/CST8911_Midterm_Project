@@ -1,6 +1,6 @@
 # Azure Functions - API Testing
 
-Python app that runs API tests on the Azure Functions (replacing Insomnia)
+Python app that runs API tests on the Azure Functions. (replacing Insomnia)
 
 ## Note
 
@@ -13,6 +13,8 @@ Replace localhost address with the proper Azure Function address later.
 
 ## Setup Instructions
 1. SSH connect to the Linux VM
+    ```bash
+    ssh -i LOCAL_PATH_TO_PRIVATE_KEY USERNAME@VM_PUBLIC_IP
 2. Install required software:
    ```bash
    sudo apt update
@@ -26,5 +28,5 @@ Replace localhost address with the proper Azure Function address later.
 4. Run the script:
     ```bash
     python api_test.py
-5. Monitor performance of Azure Functions via Azure Monitor
+5. Monitor performance of Azure Functions via Azure Monitor.
 
