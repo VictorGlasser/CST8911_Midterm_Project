@@ -29,18 +29,4 @@ crypto.generateKeyPair('rsa', keyOptions, (err, publicKey, privateKey) => {
 
   fs.writeFileSync(publicKeyPath, publicKey);
   console.log(`Public key saved to: ${publicKeyPath}\n`);
-
-  const publicKeyString = publicKey
-    .replace('-----BEGIN PUBLIC KEY-----', '')
-    .replace('-----END PUBLIC KEY-----', '')
-    .replace(/\n/g, '') // Remove all newlines
-    .trim();
-
-  console.log('\n---------------------------------------------------------');
-  console.log('FOR AZURE FUNCTION ENVIRONMENT VARIABLE (JWT_PUBLIC_KEY):');
-  console.log('---------------------------------------------------------');
-  console.log(publicKeyString);
-  console.log('---------------------------------------------------------');
-  console.log('Copy the above string and use it as the value for JWT_PUBLIC_KEY in your Azure Function settings.');
-
 });
