@@ -2,10 +2,11 @@ const { app } = require('@azure/functions');
 const { MongoClient } = require("mongodb");
 const jwt = require('jsonwebtoken');
 
+// use environment variables for config
 const config = {
-    url: "mongodb://localhost:27017",
-    dbName: "Crocs",
-    jwtSecret: "example_jwt_secret" // must match JWT_SECRET in OAuth server config
+    url: process.env.MONGO_URL,
+    dbName: process.env.MONGO_DB_NAME,
+    jwtSecret: process.env.JWT_SECRET
 };
 
 // Default values for all fields
