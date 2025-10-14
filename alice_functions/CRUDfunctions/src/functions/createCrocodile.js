@@ -1,6 +1,8 @@
 const { app } = require('@azure/functions');
 const { MongoClient } = require("mongodb");
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const path = require('path');
 
 // load public key
 let publicKeyContent;
@@ -10,7 +12,7 @@ try {
     const PUBLIC_KEY_PATH = path.join(PROJECT_ROOT, PUBLIC_KEY_FILENAME);
     publicKeyContent = fs.readFileSync(PUBLIC_KEY_PATH, 'utf-8');
 } catch (error) {
-    throw new Error("Failed to load public key");
+    throw new Error(`Failed to load public key, ${error}`);
 }
 
 // use environment variables for config

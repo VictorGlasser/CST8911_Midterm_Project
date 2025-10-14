@@ -1,6 +1,8 @@
 const { app } = require('@azure/functions');
 const { MongoClient, ObjectId } = require("mongodb");
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const path = require('path');
 
 // load public key
 let publicKeyContent;
