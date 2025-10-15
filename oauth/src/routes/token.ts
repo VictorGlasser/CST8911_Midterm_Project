@@ -1,12 +1,13 @@
-
 import { Router, Request, Response } from "express";
 import { generateToken } from "../utils/jwt";
+import * as bcrypt from 'bcryptjs';
+import { getClientSecretHash } from '../utils/db';
 
 const router: Router = Router();
 
 interface TokenRequestBody {
   client_id: string;
-  client_secret: string;
+  client_password: string;
   grant_type: 'client_credentials';
 }
 
@@ -22,21 +23,37 @@ interface ErrorResponse {
 
 router.post(
   "/token",
-  (req: Request<{}, {}, TokenRequestBody>, res: Response<TokenResponse | ErrorResponse>) => {
-    const { client_id, client_secret, grant_type } = req.body;
+  async (req: Request<{}, {}, TokenRequestBody>, res: Response<TokenResponse | ErrorResponse>) => {
+    const { client_id, client_password, grant_type } = req.body;
 
     // validate grant type
     if (grant_type !== "client_credentials") {
       return res.status(400).json({ error: "unsupported_grant_type" });
     }
 
-    // validate client
-    // TODO: Use poper credential store
-    console.log(process.env.CLIENT_ID, process.env.CLIENT_SECRET)
-    if (
-      client_id !== process.env.CLIENT_ID ||
-      client_secret !== process.env.CLIENT_SECRET
-    ) {
+    // retrieve the hash from the database
+    let storedClientHash;
+    try {
+        storedClientHash = await getClientSecretHash(client_id);
+    } catch (e) {
+        console.error("Token endpoint DB failure:", e);
+        return res.status(500).json({ error: "server_error" });
+    }
+
+    // check if client ID exists
+    if (!storedClientHash) {
+        return res.status(401).json({ error: "invalid_client" });
+    }
+
+    // validate password
+    let isSecretValid = false;
+    try {
+        isSecretValid = await bcrypt.compare(client_password, storedClientHash);
+    } catch (e) {
+        console.error("Bcrypt comparison failed:", e);
+    }
+    
+    if (!isSecretValid) {
       return res.status(401).json({ error: "invalid_client" });
     }
 
@@ -51,4 +68,3 @@ router.post(
 );
 
 export default router;
-

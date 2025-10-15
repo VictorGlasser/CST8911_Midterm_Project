@@ -1,12 +1,24 @@
 const { app } = require('@azure/functions');
 const { MongoClient, ObjectId } = require("mongodb");
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const path = require('path');
+
+// load public key
+let publicKeyContent;
+try {
+    const PUBLIC_KEY_FILENAME = 'public.pem';
+    const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
+    const PUBLIC_KEY_PATH = path.join(PROJECT_ROOT, PUBLIC_KEY_FILENAME);
+    publicKeyContent = fs.readFileSync(PUBLIC_KEY_PATH, 'utf-8');
+} catch (error) {
+    throw new Error("Failed to load public key");
+}
 
 // use environment variables for config
 const config = {
     url: process.env.MONGO_URL,
     dbName: process.env.MONGO_DB_NAME,
-    jwtSecret: process.env.JWT_SECRET
 };
 
 app.http('getCrocodile', {
@@ -27,7 +39,7 @@ app.http('getCrocodile', {
 
         // verify validity of token
         try {
-            jwt.verify(token, config.jwtSecret);
+            jwt.verify(token, publicKeyContent, { algorithms: ['RS256'] });
         } catch {
             return {
                 status: 401,

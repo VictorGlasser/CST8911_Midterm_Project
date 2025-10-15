@@ -1,2 +1,5 @@
 node_modules
 .env
+private.pem
+public.pem
+oauth_clients.db
