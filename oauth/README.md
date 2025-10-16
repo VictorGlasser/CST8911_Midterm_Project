@@ -36,14 +36,10 @@ following content
 
 ```
 PORT=8080
-JWT_SECRET=example_jwt_secret
-CLIENT_ID=example_client_id
-CLIENT_SECRET=example_client_secret
+AZURE_KEY_VAULT_URL=<vault url>
+AZURE_KEY_NAME=<key name>
 TOKEN_EXPIRY=3600
 ```
-
-I will eventually use proper credential storage for the client ID and secret.
-The `JWT_SECRET` must match the config in the functions.
 
 4. Start the OAuth server
 

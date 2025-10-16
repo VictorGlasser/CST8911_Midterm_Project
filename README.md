@@ -4,16 +4,17 @@
 
 1. Create a new Azure Cosmos DB for MongoDB
 2. Select vCore
+3. allow azure services access
 
 - Request unit would typically be cheaper for our use case, but vCore has a free tier
 
-3. Run mongodump to dump the database for migration
+4. Run mongodump to dump the database for migration
 
 ```bash
 mongodump --out ./dump
 ```
 
-4. Run mongorestore to restore the dump on the cosmos db cluster
+5. Run mongorestore to restore the dump on the cosmos db cluster
 
 ```bash
 mongorestore --uri '<cluster connection string>' ./dump
