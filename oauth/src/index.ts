@@ -1,10 +1,8 @@
 import express, { Express } from 'express';
 import bodyParser from 'body-parser';
-import dotenv from 'dotenv';
 import tokenRoute from './routes/token';
 import { keyVaultInitializationPromise } from './utils/azureKeyVault';
 
-dotenv.config();
 const app: Express = express();
 
 app.use(bodyParser.json());

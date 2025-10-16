@@ -1,45 +1,80 @@
-const { app } = require('@azure/functions');
-const { MongoClient, ObjectId } = require("mongodb");
-const jwt = require('jsonwebtoken');
-const fs = require('fs');
-const path = require('path');
+import { app } from '@azure/functions';
+import { MongoClient } from 'mongodb';
+import jwt from 'jsonwebtoken';
+import { KeyClient } from '@azure/keyvault-keys';
+import { DefaultAzureCredential } from '@azure/identity';
+import jwkToPem from 'jwk-to-pem';
+import base64url from 'base64url';
 
-// load public key
-let publicKeyContent;
-try {
-    const PUBLIC_KEY_FILENAME = 'public.pem';
-    const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
-    const PUBLIC_KEY_PATH = path.join(PROJECT_ROOT, PUBLIC_KEY_FILENAME);
-    publicKeyContent = fs.readFileSync(PUBLIC_KEY_PATH, 'utf-8');
-} catch (error) {
-    throw new Error("Failed to load public key");
-}
 
 // use environment variables for config
 const config = {
+    keyVaultUrl: process.env.AZURE_KEY_VAULT_URL,
+    keyName: process.env.AZURE_KEY_NAME,
     url: process.env.MONGO_URL,
     dbName: process.env.MONGO_DB_NAME,
 };
+
+// initialize azure key vault client
+const credential = new DefaultAzureCredential();
+const keyClient = new KeyClient(config.keyVaultUrl, credential);
+
+// variable to store the fetched public key content
+let publicKey;
+
+ // fetch public key from key vault and convert to pem format
+async function initializePublicKey() {
+    try {
+        const key = await keyClient.getKey(config.keyName);
+        const jwkKey = key.key;
+
+        // check for required RSA components
+        if (!jwkKey || jwkKey.kty !== 'RSA' || !jwkKey.n || !jwkKey.e) {
+            throw new Error("key is not a valid RSA key");
+        }
+        
+        // convert buffers to 64 bit encoded strings
+        jwkKey.n = base64url(jwkKey.n);
+        jwkKey.e = base64url(jwkKey.e);
+
+        // convert key to required format for jwt validation
+        publicKey = jwkToPem(jwkKey);
+    } catch {
+        throw new Error("public key initialization failed");
+    }
+}
+
+const publicKeyInitializationPromise = initializePublicKey();
 
 app.http('deleteCrocodile', {
     methods: ['DELETE'],
     authLevel: 'anonymous',
     route: "crocodiles/{id}",
     handler: async (req) => {
+        // ckeck that the public key has been initialized
+        try {
+            await publicKeyInitializationPromise;
+        } catch (e) {
+            return {
+                status: 500,
+                jsonBody: { error: 'Failed to retrieve public key.' }
+            };
+        }
+
         // check header for token
         const authHeader = req.headers.get('authorization');
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return {
-                status: 401,
-                jsonBody: { error: 'Missing or invalid Authorization header' }
-            };
+          return {
+            status: 401,
+            jsonBody: { error: 'Missing or invalid Authorization header' }
+          };
         }
 
         const token = authHeader.split(' ')[1];
 
         // verify validity of token
         try {
-            jwt.verify(token, publicKeyContent, { algorithms: ['RS256'] });
+            jwt.verify(token, publicKey, { algorithms: ['RS256'] });
         } catch {
             return {
                 status: 401,
