@@ -34,31 +34,38 @@ router.post(
     // retrieve the hash from the database
     let storedClientHash;
     try {
-        storedClientHash = await getClientSecretHash(client_id);
+      storedClientHash = await getClientSecretHash(client_id);
     } catch (e) {
-        console.error("Token endpoint DB failure:", e);
-        return res.status(500).json({ error: "server_error" });
+      console.error("Token endpoint DB failure:", e);
+      return res.status(500).json({ error: "server_error" });
     }
 
     // check if client ID exists
     if (!storedClientHash) {
-        return res.status(401).json({ error: "invalid_client" });
+      return res.status(401).json({ error: "invalid_client" });
     }
 
     // validate password
     let isSecretValid = false;
     try {
-        isSecretValid = await bcrypt.compare(client_password, storedClientHash);
+      isSecretValid = await bcrypt.compare(client_password, storedClientHash);
     } catch (e) {
-        console.error("Bcrypt comparison failed:", e);
+      console.error("Bcrypt comparison failed:", e);
     }
-    
+
     if (!isSecretValid) {
       return res.status(401).json({ error: "invalid_client" });
     }
 
-    // generate and send token
-    const token = generateToken(client_id);
+    // generate JWT then sign with azure key vault
+    let token: string;
+    try {
+      token = await generateToken(client_id);
+    } catch (error) {
+      console.error("Token generation failed:", error);
+      return res.status(500).json({ error: "server_error" });
+    }
+
     res.json({
       access_token: token,
       token_type: "Bearer",

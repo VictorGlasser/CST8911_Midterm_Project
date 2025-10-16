@@ -4,22 +4,37 @@
 
 1. Create a new Azure Cosmos DB for MongoDB
 2. Select vCore
-  - Request unit would typically be cheaper for our use case, but vCore has a free tier
-3. Run mongodump to dump the database for migration
+3. allow azure services access
+
+- Request unit would typically be cheaper for our use case, but vCore has a free tier
+
+4. Run mongodump to dump the database for migration
 
 ```bash
 mongodump --out ./dump
 ```
 
-4. Run mongorestore to restore the dump on the cosmos db cluster
+5. Run mongorestore to restore the dump on the cosmos db cluster
 
 ```bash
 mongorestore --uri '<cluster connection string>' ./dump
 ```
 
+## Create key vault
+
+- make sure to use role-based access control
+- add role "Key Vault Crypto Officer" to account
+  - This lets us create keys
+- once the VM is created add the role "Key Vault Crypto User" to the VM managed identity
+  - This gives the VM access to sign the JWT using the azure generated keys but not create and delete them
+- Same thing once the functions are deployed
+
 ## Setup OAuth server
 
 1. Create ubuntu VM
+
+- Make sure to select "Enable system assigned managed identity"
+
 2. install node.js
 
 ```bash
@@ -46,54 +61,52 @@ cd CST8911_Midterm_Project/oauth/
 npm install
 ```
 
-6. generate RSA key pair
-
-```bash
-node generateKeys.js
-```
-
-7. register client
+6. register client
 
 ```bash
 node registerClient.js
 ```
 
-8. configure environment variables
+7. configure environment variables
 
 ```
 PORT=8080
 TOKEN_EXPIRY=3600
+AZURE_KEY_VAULT_URL="<KEY VAULT URL>"
+AZURE_KEY_NAME="<KEY NAME>"
 ```
 
-9. start the server
+8. start the server
 
 ```bash
-npx ts-node src/
+npx ts-node src/index.ts
 ```
 
-10. Make sure the selected port is open
+9. Make sure the selected port is open
+
+10. Make sure to give the "Key Vault Crypto User" role
 
 ## Deploy Azure Functions
 
 1. on local machine, cd to the CRUDfunctions directory
 
-2. download the public key from the OAuth server
+2. create a consumption plan functions app on azure portal
 
-```bash
-scp <oauth host name>:/home/<username>/CST8911_Midterm_Project/oauth/public.pem ./
-```
-
-3. create a consumption plan functions app on azure portal
-
-4. deploy functions
+3. deploy functions
 
 ```bash
 func azure functionapp publish <functions app name>
 ```
 
-5. add environment variables to the functions
+4. add environment variables to the functions
 
 ```
-MONGO_URL = <mongo connection string>
-MONGO_DB_NAME Crocs
+MONGO_URL
+MONGO_DB_NAME: Crocs
+AZURE_KEY_VAULT_URL
+AZURE_KEY_NAME
 ```
+
+5. Enable managed identity
+
+6. Add "Key Vault Crypto User" role
