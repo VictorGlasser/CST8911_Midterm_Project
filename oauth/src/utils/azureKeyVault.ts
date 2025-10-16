@@ -1,6 +1,6 @@
 import { KeyClient, CryptographyClient } from "@azure/keyvault-keys";
 import { DefaultAzureCredential } from "@azure/identity";
-import * as base64url from 'base64url';
+import base64url from "base64url";
 import * as crypto from 'crypto';
 
 const KEY_VAULT_URL = process.env.AZURE_KEY_VAULT_URL;

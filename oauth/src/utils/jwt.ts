@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken"
 import dotenv from "dotenv"
-import * as base64url from 'base64url';
+import base64url from "base64url";
 import { signJwtWithKeyVault } from "./azureKeyVault";
 
 dotenv.config();
