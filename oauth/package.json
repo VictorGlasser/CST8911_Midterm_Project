@@ -10,7 +10,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@azure/identity": "^4.13.0",
+    "@azure/keyvault-keys": "^4.10.0",
     "@types/bcryptjs": "^2.4.6",
+    "base64-url": "^2.3.3",
     "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
     "dotenv": "^17.2.3",
@@ -19,6 +22,7 @@
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
+    "@types/base64url": "^2.0.3",
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.7.0",

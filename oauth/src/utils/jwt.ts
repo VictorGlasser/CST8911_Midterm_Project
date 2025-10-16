@@ -1,34 +1,41 @@
 import jwt from "jsonwebtoken"
 import dotenv from "dotenv"
-import * as fs from 'fs';
-import * as path from 'path';
+import * as base64url from 'base64url';
+import { signJwtWithKeyVault } from "./azureKeyVault";
 
 dotenv.config();
 
-const PRIVATE_KEY_FILENAME = 'private.pem';
-const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
-const PRIVATE_KEY_PATH = path.join(PROJECT_ROOT, PRIVATE_KEY_FILENAME);
+// generate a token that is signed by azure key vault
+export async function generateToken(clientId: string): Promise<string> {
+  const nowInSeconds = Math.floor(Date.now() / 1000);
+  const tokenExpirySeconds = Number(process.env.TOKEN_EXPIRY) || 3600; // Default to 1 hour
 
-let privateKeyContent: string;
+  const header = {
+    alg: "RS256",
+    typ: "JWT"
+  };
 
-// try to load the private key
-try {
-  privateKeyContent = fs.readFileSync(PRIVATE_KEY_PATH, 'utf-8');
-  console.log('Successfully loaded private key.');
-} catch (error) {
-  console.error(`Error loading private key from ${PRIVATE_KEY_PATH}:`, error);
-  throw new Error("Failed to load private key. Check 'private-key.pem' location and permissions.");
+  const body = {
+    sub: clientId,
+    iss: 'OAuthServer',
+    scope: 'api.read',
+    iat: nowInSeconds,
+    exp: nowInSeconds + tokenExpirySeconds,
+  };
+
+  // base64 encode the header and body to form the token before signature
+  const encodedHeader = base64url.encode(JSON.stringify(header));
+  const encodedBody = base64url.encode(JSON.stringify(body));
+  const tokenBeforeSignature = `${encodedHeader}.${encodedBody}`;
+
+  // sign using azure key vault
+  let signature: string;
+  try {
+    signature = await signJwtWithKeyVault(tokenBeforeSignature);
+  } catch (error) {
+    throw new Error(`Error signing JWT: ${error}`);
+  }
+
+  // combine token and signature to form conplete JWT
+  return `${tokenBeforeSignature}.${signature}`;
 }
-
-// generate a token that is signed by the private key
-export function generateToken(clientId: string): string {
-  return jwt.sign(
-    { sub: clientId, iss: 'OAuthServer', scope: 'api.read' },
-    privateKeyContent,
-    {
-      expiresIn: Number(process.env.TOKEN_EXPIRY),
-      algorithm: 'RS256'
-    }
-  );
-}
-
