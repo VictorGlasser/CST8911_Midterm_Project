@@ -1,13 +1,12 @@
 import { app } from '@azure/functions';
 import { MongoClient } from 'mongodb';
-import jwt from 'jsonwebtoken';
-import { KeyClient } from '@azure/keyvault-keys';
+import { KeyClient, CryptographyClient } from '@azure/keyvault-keys';
 import { DefaultAzureCredential } from '@azure/identity';
-import jwkToPem from 'jwk-to-pem';
+import crypto from 'crypto';
+
 import base64url from 'base64url';
 
-
-// use environment variables for config
+// configuration from environment variables
 const config = {
   keyVaultUrl: process.env.AZURE_KEY_VAULT_URL,
   keyName: process.env.AZURE_KEY_NAME,
@@ -15,36 +14,54 @@ const config = {
   dbName: process.env.MONGO_DB_NAME,
 };
 
-// initialize azure key vault client
+// initialize Azure clients
 const credential = new DefaultAzureCredential();
 const keyClient = new KeyClient(config.keyVaultUrl, credential);
 
-// variable to store the fetched public key content
-let publicKey;
+let cryptoClient;
 
- // fetch public key from key vault and convert to pem format
-async function initializePublicKey() {
-    try {
-        const key = await keyClient.getKey(config.keyName);
-        const jwkKey = key.key;
-
-        // check for required RSA components
-        if (!jwkKey || jwkKey.kty !== 'RSA' || !jwkKey.n || !jwkKey.e) {
-            throw new Error("key is not a valid RSA key");
-        }
-        
-        // convert buffers to 64 bit encoded strings
-        jwkKey.n = base64url(jwkKey.n);
-        jwkKey.e = base64url(jwkKey.e);
-
-        // convert key to required format for jwt validation
-        publicKey = jwkToPem(jwkKey);
-    } catch {
-        throw new Error(error);
-    }
+// initialize cryptography client for the key
+async function initializeCryptoClient() {
+  try {
+    const key = await keyClient.getKey(config.keyName);
+    cryptoClient = new CryptographyClient(key.id, credential);
+  } catch (error) {
+    throw new Error(`Failed to initialize CryptographyClient: ${error.message}`);
+  }
 }
 
-const publicKeyInitializationPromise = initializePublicKey();
+const cryptoClientInitializationPromise = initializeCryptoClient();
+
+// verify JWT using Azure Key Vault API
+async function verifyJwtWithKeyVault(token) {
+  try {
+    const [headerB64, payloadB64, signatureB64] = token.split('.');
+    if (!headerB64 || !payloadB64 || !signatureB64) {
+      throw new Error('Malformed JWT');
+    }
+
+    const signedData = `${headerB64}.${payloadB64}`;
+    const hash = crypto.createHash('sha256').update(signedData, 'utf8').digest();
+    const signature = base64url.toBuffer(signatureB64);
+
+    await cryptoClientInitializationPromise;
+
+    const verifyResult = await cryptoClient.verify("RS256", hash, signature);
+
+    if (!verifyResult.result) {
+      throw new Error('Invalid token signature');
+    }
+
+    // decode payload if valid
+    const payloadJson = Buffer.from(payloadB64, 'base64').toString();
+    const payload = JSON.parse(payloadJson);
+
+    return payload;
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    throw error;
+  }
+}
 
 app.http('getAllCrocodiles', {
   methods: ['GET'],
@@ -52,16 +69,16 @@ app.http('getAllCrocodiles', {
   route: "crocodiles",
   handler: async (req) => {
     try {
-      await publicKeyInitializationPromise;
-    } catch (e) {
+      await cryptoClientInitializationPromise;
+    } catch {
       return {
         status: 500,
-        jsonBody: { error: 'Failed to retrieve public key.' }
+        jsonBody: { error: 'Failed to initialize Key Vault cryptography client.' }
       };
     }
 
-    // check header for token
-    const authHeader = req.headers.get('authorization');
+    // check authorization header
+    const authHeader = req.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return {
         status: 401,
@@ -71,17 +88,17 @@ app.http('getAllCrocodiles', {
 
     const token = authHeader.split(' ')[1];
 
-    // verify validity of token
+    // verify JWT signature via Key Vault
     try {
-      jwt.verify(token, publicKey, { algorithms: ['RS256'] });
-    } catch {
+      await verifyJwtWithKeyVault(token);
+    } catch (err) {
       return {
         status: 401,
         jsonBody: { error: 'Invalid or expired token' }
       };
     }
 
-    // connect to mongodb
+    // connect to MongoDB
     let client;
     try {
       client = await MongoClient.connect(config.url);
@@ -95,12 +112,10 @@ app.http('getAllCrocodiles', {
     } catch (err) {
       return {
         status: 500,
-        jsonBody: {
-          error: `Failed database connection, ${err}`
-        }
+        jsonBody: { error: `Database connection failed: ${err.message}` }
       };
     } finally {
-      await client.close();
+      if (client) await client.close();
     }
   }
 });

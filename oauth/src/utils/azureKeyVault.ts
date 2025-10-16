@@ -2,7 +2,7 @@ import { KeyClient, CryptographyClient } from "@azure/keyvault-keys";
 import { DefaultAzureCredential } from "@azure/identity";
 import base64url from "base64url";
 import dotenv from 'dotenv';
-import * as crypto from 'crypto';
+import crypto from 'crypto';
 
 dotenv.config();
 
@@ -24,27 +24,23 @@ export async function initializeKeyVaultClient(): Promise<void> {
       throw new Error(`Key ${KEY_NAME} fetched from Key Vault does not have a valid ID.`);
     }
     cryptoClient = new CryptographyClient(key.id, credential);
-  } catch (error) {
-    throw new Error("Key Vault initialization failed");
+  } catch (error: any) {
+    console.error("Key Vault initialization failed:", error);
   }
 }
 
-// sign the JWT using azure key vault
 export async function signJwtWithKeyVault(tokenBeforeSignature: string): Promise<string> {
-  // RS256 requires hashing the data first
-  const hash = crypto.createHash("sha256").update(tokenBeforeSignature).digest();
+  if (!cryptoClient) throw new Error("Key Vault client is not initialized");
+  try {
+    // key vault expects a SHA-256 hash for RS256 signing
+    const hash = crypto.createHash('sha256').update(tokenBeforeSignature, 'utf8').digest();
 
-  // sign the hash
-  if (!cryptoClient) {
-    throw new Error("Key vault client is not initialized");
+    const signResult = await cryptoClient.sign("RS256", hash);
+    return base64url.encode(Buffer.from(signResult.result));
+  } catch (err: any) {
+    console.error("JWT signing failed:", err.message || err);
+    throw err;
   }
-
-  const signResult = await cryptoClient.sign("RS256", hash);
-
-  // JWT is in base64, so the signature must be encoded
-  const signatureBase64Url = base64url.encode(Buffer.from(signResult.result));
-
-  return signatureBase64Url;
 }
 
 export const keyVaultInitializationPromise = initializeKeyVaultClient();
